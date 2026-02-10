@@ -13,7 +13,6 @@ import {
   type SmhiRadarProductsResponse,
   type SmhiRadarAreaResponse,
   type SmhiDistrictResponse,
-  type SmhiLink,
   type ForecastResponse,
   type ForecastPoint,
   type ObservationResponse,
@@ -262,12 +261,12 @@ function parseLightningCsv(csv: string): LightningStrike[] {
 
   for (const line of lines) {
     // Skip empty lines and header
-    if (!line.trim() || line.startsWith('year')) continue;
+    if (!line.trim() || line.startsWith('version')) continue;
 
     const parts = line.split(';');
-    if (parts.length < 10) continue;
+    if (parts.length < 22) continue;
 
-    const [year, month, day, hour, min, sec, lat, lon, peakCurrent, cloudIndicator] = parts;
+    const [_version, year, month, day, hour, min, sec, _nanoseconds, lat, lon, peakCurrent] = parts;
 
     strikes.push({
       timestamp: new Date(
@@ -281,7 +280,7 @@ function parseLightningCsv(csv: string): LightningStrike[] {
       latitude: parseFloat(lat),
       longitude: parseFloat(lon),
       peakCurrent: parseFloat(peakCurrent),
-      cloudIndicator: parseInt(cloudIndicator),
+      cloudIndicator: parseInt(parts[21]),
     });
   }
 
@@ -597,19 +596,13 @@ export const smhiClient = {
       throw new NotFoundError('Radar format', `${format} (available: ${availableFormats})`);
     }
 
-    // Find the download link
-    const downloadLink = formatData.link.find((l: SmhiLink) => l.rel === 'data' || l.type?.includes('image'));
-    if (!downloadLink) {
-      throw new NotFoundError('Radar download link', `${product}/${area}/${format}`);
-    }
-
     return {
       product,
       area,
       format,
       validTime: new Date(latestFile.valid).toISOString(),
       updatedTime: new Date(latestFile.updated).toISOString(),
-      imageUrl: downloadLink.href,
+      imageUrl: formatData.link,
       // Radar images are in SWEREF99TM - approximate bounding box for Sweden
       boundingBox:
         area === 'sweden'

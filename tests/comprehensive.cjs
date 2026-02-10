@@ -136,7 +136,7 @@ async function main() {
   try {
     const result = await testMCP('tools/call', {
       name: 'smhi_describe_data',
-      arguments: { dataType: 'stations' },
+      arguments: { dataType: 'met_stations' },
     });
     const data = JSON.parse(result.result?.content?.[0]?.text || '{}');
     recordTest('Describe data - stations', data.stations?.length > 0 || data.count > 0, `(found ${data.count || data.stations?.length || 0})`);
@@ -211,12 +211,12 @@ async function main() {
         dataType: 'hydrological',
         kommun: '0180',
         parameter: 'water_level',
-        period: 'latest-hour',
+        period: 'latest-day',
       },
     });
     const data = JSON.parse(result.result?.content?.[0]?.text || '{}');
     // Hydro stations might not be available in all areas
-    recordTest('Observations - hydrological', data.observations !== undefined || data.station || data.error === 'NOT_FOUND' || !data.error, '(water_level)');
+    recordTest('Observations - hydrological', data.observations !== undefined || data.station || data.code === 'NOT_FOUND' || !data.error, '(water_level)');
   } catch (error) {
     recordTest('Observations - hydrological', false, `(error: ${error.message})`);
   }

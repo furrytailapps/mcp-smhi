@@ -369,7 +369,7 @@ export interface SmhiRadarFile {
 export interface SmhiRadarFileFormat {
   key: string;
   updated: number;
-  link: SmhiLink[];
+  link: string;
 }
 
 /**
@@ -397,7 +397,7 @@ export interface RadarImage {
 
 /**
  * Raw lightning strike from CSV
- * CSV columns: year, month, day, hour, min, sec, lat, lon, peakCurrent, cloudIndicator
+ * CSV columns: version, year, month, day, hours, minutes, seconds, nanoseconds, lat, lon, peakCurrent, ..., cloudIndicator (index 21)
  */
 export interface LightningStrike {
   timestamp: string;
