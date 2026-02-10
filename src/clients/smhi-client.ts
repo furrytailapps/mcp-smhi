@@ -136,7 +136,7 @@ function parseCorrectedArchiveCsv(csv: string): {
       !/^\d{4}-\d{2}-\d{2}/.test(trimmed)
     ) {
       const unitField = parts[parts.length - 1]?.toLowerCase() || '';
-      const unitPatterns = ['celsius', 'm/s', 'procent', 'hpa', 'grader', 'millimeter', 'm³/s', 'meter per sekund', 'sekund'];
+      const unitPatterns = ['celsius', 'm/s', 'procent', 'hpa', 'grader', 'millimeter', 'm³/s', 'meter per sekund', 'sekund', 'cm'];
       if (unitPatterns.some((u) => unitField.includes(u))) {
         parameterName = parts[0];
         unit = parts[parts.length >= 3 ? 2 : 1] || '';
