@@ -307,9 +307,16 @@ Historical observation queries have been tested across 5 construction-relevant u
 **Human question:** "Hur långa har vintrarna varit runt Mora senaste 10 åren?"
 
 **Agent query:**
+
 ```json
-{ "dataType": "meteorological", "kommun": "2062", "parameter": "temperature",
-  "period": "corrected-archive", "startDate": "2015-01-01", "endDate": "2025-01-01" }
+{
+  "dataType": "meteorological",
+  "kommun": "2062",
+  "parameter": "temperature",
+  "period": "corrected-archive",
+  "startDate": "2015-01-01",
+  "endDate": "2025-01-01"
+}
 ```
 
 **Results:** 87,193 raw observations → 523 weekly aggregates with min/max/avg temperatures.
@@ -321,9 +328,16 @@ Historical observation queries have been tested across 5 construction-relevant u
 **Human question:** "Hur mycket nederbörd kommer det i Oktober-November runt Västerås?"
 
 **Agent query:**
+
 ```json
-{ "dataType": "meteorological", "kommun": "1980", "parameter": "precipitation",
-  "period": "corrected-archive", "startDate": "2020-10-01", "endDate": "2024-11-30" }
+{
+  "dataType": "meteorological",
+  "kommun": "1980",
+  "parameter": "precipitation",
+  "period": "corrected-archive",
+  "startDate": "2020-10-01",
+  "endDate": "2024-11-30"
+}
 ```
 
 **Results:** 218 weekly aggregates covering 4 autumn seasons.
@@ -335,9 +349,16 @@ Historical observation queries have been tested across 5 construction-relevant u
 **Human question:** "Hur stor risk är det för kraftig nederbörd i April i Halmstad?"
 
 **Agent query:**
+
 ```json
-{ "dataType": "meteorological", "kommun": "1380", "parameter": "precipitation",
-  "period": "corrected-archive", "startDate": "2019-04-01", "endDate": "2024-04-30" }
+{
+  "dataType": "meteorological",
+  "kommun": "1380",
+  "parameter": "precipitation",
+  "period": "corrected-archive",
+  "startDate": "2019-04-01",
+  "endDate": "2024-04-30"
+}
 ```
 
 **Results:** 266 weekly aggregates covering 5 April periods.
@@ -349,9 +370,16 @@ Historical observation queries have been tested across 5 construction-relevant u
 **Human question:** "Hur ofta blåser det för mycket för kranlyftar i Mora?"
 
 **Agent query:**
+
 ```json
-{ "dataType": "meteorological", "kommun": "2062", "parameter": "wind_speed",
-  "period": "corrected-archive", "startDate": "2023-01-01", "endDate": "2024-12-31" }
+{
+  "dataType": "meteorological",
+  "kommun": "2062",
+  "parameter": "wind_speed",
+  "period": "corrected-archive",
+  "startDate": "2023-01-01",
+  "endDate": "2024-12-31"
+}
 ```
 
 **Results:** 106 weekly aggregates with min/max/avg wind speeds.
@@ -363,9 +391,16 @@ Historical observation queries have been tested across 5 construction-relevant u
 **Human question:** "Hur varierar vattennivån i närheten av Mora under året?"
 
 **Agent query:**
+
 ```json
-{ "dataType": "hydrological", "kommun": "2062", "parameter": "water_level",
-  "period": "corrected-archive", "startDate": "2020-01-01", "endDate": "2024-12-31" }
+{
+  "dataType": "hydrological",
+  "kommun": "2062",
+  "parameter": "water_level",
+  "period": "corrected-archive",
+  "startDate": "2020-01-01",
+  "endDate": "2024-12-31"
+}
 ```
 
 **Results:** 262 weekly aggregates from nearest hydrological station (SKATTUNGEN).
@@ -374,12 +409,12 @@ Historical observation queries have been tested across 5 construction-relevant u
 
 ### Test Matrix Summary
 
-| Use Case | Mora (2062) | Västerås (1980) | Halmstad (1380) |
-|----------|-------------|-----------------|-----------------|
-| 1. Winter temp | Mora A (523) | Västerås (520) | Torup A (521) |
-| 2. Autumn precip | Orsa D (218) | Västerås (218) | Eftra D (218) |
-| 3. April precip | Orsa D (266) | Västerås (266) | Eftra D (266) |
-| 4. Wind speed | Mora A (106) | Eskilstuna A (106) | Torup A (106) |
-| 5. Water level | SKATTUNGEN (262) | ÅKESTA KVARN 3 (63) | NISSASTRÖM (262) |
+| Use Case         | Mora (2062)      | Västerås (1980)     | Halmstad (1380)  |
+| ---------------- | ---------------- | ------------------- | ---------------- |
+| 1. Winter temp   | Mora A (523)     | Västerås (520)      | Torup A (521)    |
+| 2. Autumn precip | Orsa D (218)     | Västerås (218)      | Eftra D (218)    |
+| 3. April precip  | Orsa D (266)     | Västerås (266)      | Eftra D (266)    |
+| 4. Wind speed    | Mora A (106)     | Eskilstuna A (106)  | Torup A (106)    |
+| 5. Water level   | SKATTUNGEN (262) | ÅKESTA KVARN 3 (63) | NISSASTRÖM (262) |
 
 All 15 tests pass. Numbers in parentheses = weekly aggregates returned.

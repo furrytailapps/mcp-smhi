@@ -39,7 +39,7 @@ async function testMCP(method, params = {}) {
     headers: {
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(data),
-      Accept: 'application/json, text/event-stream',
+      'Accept': 'application/json, text/event-stream',
     },
   };
 
@@ -115,7 +115,11 @@ async function main() {
       arguments: { dataType: 'kommuner' },
     });
     const data = JSON.parse(result.result?.content?.[0]?.text || '{}');
-    recordTest('Describe data - kommuner', data.kommuner?.length > 0 || data.count > 0, `(found ${data.count || data.kommuner?.length || 0})`);
+    recordTest(
+      'Describe data - kommuner',
+      data.kommuner?.length > 0 || data.count > 0,
+      `(found ${data.count || data.kommuner?.length || 0})`,
+    );
   } catch (error) {
     recordTest('Describe data - kommuner', false, `(error: ${error.message})`);
   }
@@ -139,7 +143,11 @@ async function main() {
       arguments: { dataType: 'met_stations' },
     });
     const data = JSON.parse(result.result?.content?.[0]?.text || '{}');
-    recordTest('Describe data - stations', data.stations?.length > 0 || data.count > 0, `(found ${data.count || data.stations?.length || 0})`);
+    recordTest(
+      'Describe data - stations',
+      data.stations?.length > 0 || data.count > 0,
+      `(found ${data.count || data.stations?.length || 0})`,
+    );
   } catch (error) {
     recordTest('Describe data - stations', false, `(error: ${error.message})`);
   }
@@ -216,7 +224,11 @@ async function main() {
     });
     const data = JSON.parse(result.result?.content?.[0]?.text || '{}');
     // Hydro stations might not be available in all areas
-    recordTest('Observations - hydrological', data.observations !== undefined || data.station || data.code === 'NOT_FOUND' || !data.error, '(water_level)');
+    recordTest(
+      'Observations - hydrological',
+      data.observations !== undefined || data.station || data.code === 'NOT_FOUND' || !data.error,
+      '(water_level)',
+    );
   } catch (error) {
     recordTest('Observations - hydrological', false, `(error: ${error.message})`);
   }
@@ -231,7 +243,11 @@ async function main() {
       arguments: { conditionType: 'warnings' },
     });
     const data = JSON.parse(result.result?.content?.[0]?.text || '{}');
-    recordTest('Current conditions - warnings', data.warnings !== undefined || !data.error, `(found ${data.count || 0} warnings)`);
+    recordTest(
+      'Current conditions - warnings',
+      data.warnings !== undefined || !data.error,
+      `(found ${data.count || 0} warnings)`,
+    );
   } catch (error) {
     recordTest('Current conditions - warnings', false, `(error: ${error.message})`);
   }
@@ -255,7 +271,11 @@ async function main() {
       arguments: { conditionType: 'lightning', date: 'latest' },
     });
     const data = JSON.parse(result.result?.content?.[0]?.text || '{}');
-    recordTest('Current conditions - lightning', data.strikes !== undefined || !data.error, `(found ${data.count || 0} strikes)`);
+    recordTest(
+      'Current conditions - lightning',
+      data.strikes !== undefined || !data.error,
+      `(found ${data.count || 0} strikes)`,
+    );
   } catch (error) {
     recordTest('Current conditions - lightning', false, `(error: ${error.message})`);
   }
