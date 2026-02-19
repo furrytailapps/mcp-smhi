@@ -87,7 +87,7 @@ export const getCurrentConditionsTool = {
     'Get current/recent weather conditions in Sweden. ' +
     "Use conditionType='warnings' for active weather warnings (storms, flooding). " +
     "Use conditionType='radar' for precipitation radar images (rain/snow nowcasting). " +
-    "Use conditionType='lightning' for recent lightning strikes (crane/height work safety). " +
+    "Use conditionType='lightning' for recent lightning strikes with WGS84 coordinates (crane/height work safety). " +
     'For lightning location filter: use coordinates, kommun code (4 digits), or län code (1-2 letters). ' +
     "Examples: conditionType='warnings' | conditionType='radar' | conditionType='lightning', kommun='0180'",
   inputSchema: getCurrentConditionsInputSchema,

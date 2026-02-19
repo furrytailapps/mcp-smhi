@@ -183,6 +183,7 @@ export const getObservationsTool = {
     'For hydrological data: water levels and flows (useful for excavation near waterways). ' +
     'Historical queries (corrected-archive with date range) return aggregated data: ' +
     'daily min/max/avg for ranges < 90 days, weekly min/max/avg for ranges >= 90 days. ' +
+    'Returns station location (WGS84 latitude/longitude) alongside observation data. ' +
     'Provide stationId directly, or specify location by coordinates or kommun/län code. ' +
     'Examples: stationId=98210 | latitude=59.33, longitude=18.07 | kommun="0180" | lan="AB"',
   inputSchema: getObservationsInputSchema,
