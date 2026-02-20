@@ -4,9 +4,6 @@ import { withErrorHandling } from '@/lib/response';
 import { ValidationError } from '@/lib/errors';
 import { resolveKommun, resolveLan } from '@/lib/location-resolver';
 
-/**
- * Condition type enum for consolidated current conditions tool
- */
 const conditionTypeSchema = z
   .enum(['warnings', 'radar', 'lightning'])
   .describe(
@@ -15,12 +12,10 @@ const conditionTypeSchema = z
 
 export const getCurrentConditionsInputSchema = {
   conditionType: conditionTypeSchema,
-  // Warnings options
   warningLevel: z
     .enum(['yellow', 'orange', 'red'])
     .optional()
     .describe('For warnings: minimum level to include. Options: yellow (be aware), orange (be prepared), red (take action).'),
-  // Radar options
   product: z
     .enum(['comp', 'pcappi'])
     .optional()
@@ -31,7 +26,6 @@ export const getCurrentConditionsInputSchema = {
     .optional()
     .default('png')
     .describe('For radar: image format. png (viewable), tif (GeoTiff), h5 (HDF5). Default: png'),
-  // Lightning options
   date: z
     .string()
     .optional()
@@ -121,7 +115,6 @@ export const getCurrentConditionsHandler = withErrorHandling(async (args: GetCur
     case 'lightning': {
       let { latitude, longitude } = args;
 
-      // Resolve coordinates from kommun or län if not provided directly
       if (latitude === undefined || longitude === undefined) {
         if (args.kommun) {
           const resolved = resolveKommun(args.kommun);
@@ -144,12 +137,10 @@ export const getCurrentConditionsHandler = withErrorHandling(async (args: GetCur
         }
       }
 
-      // Validate that latitude and longitude are either both resolved or both omitted
       if ((latitude !== undefined) !== (longitude !== undefined)) {
         throw new ValidationError('Both latitude and longitude must be provided together, or both omitted');
       }
 
-      // Date is required for lightning
       const dateStr = args.date || 'latest';
       let date: Date;
 

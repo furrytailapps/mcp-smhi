@@ -1,7 +1,4 @@
-/**
- * Location resolver for Swedish kommun and län codes
- * Maps administrative codes to WGS84 coordinates for SMHI API calls
- */
+// Maps Swedish admin codes to WGS84 coordinates for SMHI API calls
 
 import kommunerData from '@/data/kommuner.json';
 import lanData from '@/data/lan.json';
@@ -58,13 +55,8 @@ export interface ResolvedLocation {
   code: string;
 }
 
-/**
- * Resolve a kommun code to coordinates
- * Only accepts 4-digit kommun codes (not names)
- * Uses the län centroid since kommun-level coordinates aren't available
- */
+// Uses län centroid since kommun-level coordinates aren't available
 export function resolveKommun(code: string): ResolvedLocation | null {
-  // Only accept 4-digit codes
   if (!/^\d{4}$/.test(code)) {
     return null;
   }
@@ -96,12 +88,7 @@ export function resolveKommun(code: string): ResolvedLocation | null {
   };
 }
 
-/**
- * Resolve a län code to coordinates
- * Only accepts 1-2 letter län codes (not names)
- */
 export function resolveLan(code: string): ResolvedLocation | null {
-  // Only accept 1-2 letter codes
   if (!/^[A-Za-z]{1,2}$/.test(code)) {
     return null;
   }
@@ -120,42 +107,26 @@ export function resolveLan(code: string): ResolvedLocation | null {
   };
 }
 
-/**
- * Resolve any location code to coordinates
- * Only accepts codes: 4-digit kommun code or 1-2 letter län code
- */
 export function resolveLocation(code: string): ResolvedLocation | null {
-  // If 4 digits, it's a kommun code
   if (/^\d{4}$/.test(code)) {
     return resolveKommun(code);
   }
 
-  // If 1-2 letters, it's a län code
   if (/^[A-Za-z]{1,2}$/.test(code)) {
     return resolveLan(code);
   }
 
-  // Invalid format
   return null;
 }
 
-/**
- * List all available kommuner
- */
 export function listKommuner(): Kommun[] {
   return kommuner;
 }
 
-/**
- * List all available län
- */
 export function listLan(): Lan[] {
   return lan;
 }
 
-/**
- * Get all kommuner in a specific län
- */
 export function getKommunerInLan(lanCode: string): Kommun[] {
   const upperCode = lanCode.toUpperCase();
 

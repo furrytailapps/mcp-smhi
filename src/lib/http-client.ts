@@ -6,9 +6,6 @@ interface HttpClientConfig {
   headers?: Record<string, string>;
 }
 
-/**
- * Create a typed HTTP client for API wrapping
- */
 export function createHttpClient(config: HttpClientConfig) {
   const { baseUrl, timeout = 30000, headers = {} } = config;
 
@@ -23,10 +20,10 @@ export function createHttpClient(config: HttpClientConfig) {
   ): Promise<T> {
     const { method = 'GET', params, body, responseType = 'json' } = options;
 
-    // Build URL with query params (strip leading / from path if present)
     const cleanPath = path.startsWith('/') ? path.substring(1) : path;
     const url = new URL(cleanPath, baseUrl.endsWith('/') ? baseUrl : baseUrl + '/');
     if (params) {
+      // WORKAROUND: LLM agents pass "" for optional params
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== '') {
           url.searchParams.set(key, String(value));
@@ -58,7 +55,6 @@ export function createHttpClient(config: HttpClientConfig) {
         throw new UpstreamApiError(msg, response.status, baseUrl);
       }
 
-      // Handle different response types
       if (responseType === 'text') {
         return (await response.text()) as T;
       }
@@ -67,7 +63,6 @@ export function createHttpClient(config: HttpClientConfig) {
         return (await response.blob()) as T;
       }
 
-      // Handle text responses (like WKT or CSV)
       const contentType = response.headers.get('content-type');
       if (contentType?.includes('text/plain') || contentType?.includes('text/csv')) {
         return (await response.text()) as T;

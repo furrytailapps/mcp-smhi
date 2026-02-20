@@ -3,7 +3,6 @@ import { registerAllTools } from '@/tools';
 
 const handler = createMcpHandler(
   (server) => {
-    // Register all SMHI tools
     registerAllTools(server);
   },
   {},

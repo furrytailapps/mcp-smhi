@@ -1,16 +1,8 @@
-/**
- * Types for SMHI API responses
- * SMHI Open Data APIs: https://opendata.smhi.se/
- */
-
 // ============================================================================
 // FORECASTS (SNOW1gv1 - Point Forecasts)
 // ============================================================================
 
-/**
- * Raw SMHI forecast response (SNOW1g v1)
- * Endpoint: GET /api/category/snow1g/version/1/geotype/point/lon/{lon}/lat/{lat}/data.json
- */
+// Endpoint: GET /api/category/snow1g/version/1/geotype/point/lon/{lon}/lat/{lat}/data.json
 export interface SmhiForecastResponse {
   approvedTime: string;
   referenceTime: string;
@@ -50,9 +42,6 @@ export interface SmhiForecastData {
   predominant_precipitation_type_at_surface?: number;
 }
 
-/**
- * Transformed forecast for tool response
- */
 export interface ForecastPoint {
   validTime: string;
   temperature?: number;
@@ -81,9 +70,6 @@ export interface ForecastResponse {
 // OBSERVATIONS (Meteorological & Hydrological)
 // ============================================================================
 
-/**
- * Raw SMHI station list response
- */
 export interface SmhiStationListResponse {
   key: string;
   updated: number;
@@ -114,9 +100,6 @@ export interface SmhiLink {
   rel?: string;
 }
 
-/**
- * Raw SMHI observation data response
- */
 export interface SmhiObservationResponse {
   value: SmhiObservationValue[];
   updated: number;
@@ -152,9 +135,6 @@ export interface SmhiPosition {
   longitude: number;
 }
 
-/**
- * Transformed observation for tool response
- */
 export interface Observation {
   timestamp: string;
   value: number;
@@ -213,10 +193,7 @@ export interface SmhiHydroStation {
 // WARNINGS (Impact-Based Warnings - IBW)
 // ============================================================================
 
-/**
- * Raw SMHI warnings response
- * Endpoint: GET /ibww/api/version/1/warning.json
- */
+// Endpoint: GET /ibww/api/version/1/warning.json
 export type SmhiWarningsResponse = SmhiWarningEvent[];
 
 export interface SmhiWarningEvent {
@@ -268,9 +245,6 @@ export interface SmhiWarningDescription {
   };
 }
 
-/**
- * Transformed warning for tool response
- */
 export interface Warning {
   id: string;
   event: string;
@@ -309,9 +283,6 @@ export interface District {
 // RADAR
 // ============================================================================
 
-/**
- * Raw SMHI radar products response (top level)
- */
 export interface SmhiRadarProductsResponse {
   key: string;
   updated: number;
@@ -338,9 +309,6 @@ export interface SmhiRadarArea {
   link: SmhiLink[];
 }
 
-/**
- * Raw SMHI radar area/product response
- */
 export interface SmhiRadarAreaResponse {
   key: string;
   updated: number;
@@ -372,9 +340,6 @@ export interface SmhiRadarFileFormat {
   link: string;
 }
 
-/**
- * Transformed radar for tool response
- */
 export interface RadarImage {
   product: string;
   area: string;
@@ -395,10 +360,7 @@ export interface RadarImage {
 // LIGHTNING
 // ============================================================================
 
-/**
- * Raw lightning strike from CSV
- * CSV columns: version, year, month, day, hours, minutes, seconds, nanoseconds, lat, lon, peakCurrent, ..., cloudIndicator (index 21)
- */
+// CSV columns: version, year, month, day, hours, minutes, seconds, nanoseconds, lat, lon, peakCurrent, ..., cloudIndicator (index 21)
 export interface LightningStrike {
   timestamp: string;
   latitude: number;
@@ -432,18 +394,12 @@ export interface SmhiParameterResponse {
   stationSet?: SmhiLink[];
 }
 
-/**
- * Forecast parameter metadata
- */
 export interface ForecastParameter {
   name: string;
   description: string;
   unit: string;
 }
 
-/**
- * Observation parameter metadata
- */
 export interface ObservationParameter {
   id: number;
   name: string;
@@ -455,9 +411,6 @@ export interface ObservationParameter {
 // CONSTANTS
 // ============================================================================
 
-/**
- * SMHI API base URLs
- */
 export const SMHI_API_BASES = {
   forecast: 'https://opendata-download-metfcst.smhi.se',
   metobs: 'https://opendata-download-metobs.smhi.se',
@@ -467,9 +420,7 @@ export const SMHI_API_BASES = {
   lightning: 'https://opendata-download-lightning.smhi.se',
 } as const;
 
-/**
- * Forecast parameter mapping (SNOW1g v1 API property names to our names)
- */
+// SNOW1g v1 API property names -> our output names
 export const FORECAST_PARAMS: Record<string, { name: string; unit: string }> = {
   air_temperature: { name: 'temperature', unit: '°C' },
   wind_speed: { name: 'windSpeed', unit: 'm/s' },
@@ -485,9 +436,6 @@ export const FORECAST_PARAMS: Record<string, { name: string; unit: string }> = {
   symbol_code: { name: 'symbolCode', unit: '' },
 };
 
-/**
- * Meteorological observation parameters (ID -> name mapping)
- */
 export const MET_OBS_PARAMS: Record<number, { name: string; description: string; unit: string }> = {
   1: { name: 'temperature', description: 'Lufttemperatur momentanvärde', unit: '°C' },
   3: { name: 'wind_direction', description: 'Vindriktning momentanvärde', unit: '°' },
@@ -498,9 +446,6 @@ export const MET_OBS_PARAMS: Record<number, { name: string; description: string;
   21: { name: 'wind_gust', description: 'Byvind', unit: 'm/s' },
 };
 
-/**
- * Hydrological observation parameters
- */
 export const HYDRO_OBS_PARAMS: Record<number, { name: string; description: string; unit: string }> = {
   1: { name: 'water_flow', description: 'Vattenföring (Dygn)', unit: 'm³/s' },
   3: { name: 'water_level', description: 'Vattenstånd', unit: 'cm' },

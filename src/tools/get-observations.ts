@@ -5,7 +5,6 @@ import { ValidationError, NotFoundError } from '@/lib/errors';
 import { resolveKommun, resolveLan } from '@/lib/location-resolver';
 import { dataTypeSchema, periodSchema } from '@/types/common-schemas';
 
-// Types for aggregated observations
 interface AggregatedObservation {
   period: string; // Date for daily (YYYY-MM-DD), or week start for weekly (YYYY-MM-DD)
   periodType: 'day' | 'week';
@@ -15,9 +14,6 @@ interface AggregatedObservation {
   count: number; // Number of raw observations in this period
 }
 
-/**
- * Get ISO week number and year for a date
- */
 function getISOWeek(date: Date): { year: number; week: number } {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   const dayNum = d.getUTCDay() || 7;
@@ -27,9 +23,6 @@ function getISOWeek(date: Date): { year: number; week: number } {
   return { year: d.getUTCFullYear(), week };
 }
 
-/**
- * Get the Monday of a given ISO week
- */
 function getWeekStart(year: number, week: number): string {
   const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
   const dayOfWeek = simple.getUTCDay();
@@ -38,9 +31,6 @@ function getWeekStart(year: number, week: number): string {
   return monday.toISOString().split('T')[0];
 }
 
-/**
- * Aggregate observations to daily values (min/max/avg)
- */
 function aggregateToDaily(observations: Array<{ timestamp: string; value: number; quality: string }>): AggregatedObservation[] {
   const byDay = new Map<string, number[]>();
 
@@ -70,9 +60,6 @@ function aggregateToDaily(observations: Array<{ timestamp: string; value: number
   return result.sort((a: AggregatedObservation, b: AggregatedObservation) => a.period.localeCompare(b.period));
 }
 
-/**
- * Aggregate observations to weekly values (min/max/avg)
- */
 function aggregateToWeekly(
   observations: Array<{ timestamp: string; value: number; quality: string }>,
 ): AggregatedObservation[] {
@@ -206,9 +193,7 @@ export const getObservationsHandler = withErrorHandling(async (args: GetObservat
   let stationId = args.stationId;
   let { latitude, longitude } = args;
 
-  // If no stationId, find nearest station
   if (!stationId) {
-    // Resolve coordinates from kommun or län if not provided directly
     if (latitude === undefined || longitude === undefined) {
       if (args.kommun) {
         const resolved = resolveKommun(args.kommun);
@@ -240,14 +225,12 @@ export const getObservationsHandler = withErrorHandling(async (args: GetObservat
     stationId = station.id;
   }
 
-  // Fetch observation data using unified API
   const result = await smhiClient.getObservation(args.dataType, stationId, args.parameter, args.period);
 
   if (!result) {
     throw new NotFoundError('Observation data', `station ${stationId}, parameter ${args.parameter}`);
   }
 
-  // Filter by date range if specified (useful for corrected-archive period)
   if (args.startDate || args.endDate) {
     const startMs = args.startDate ? new Date(args.startDate).getTime() : 0;
     const endMs = args.endDate ? new Date(args.endDate + 'T23:59:59.999Z').getTime() : Infinity;
@@ -257,14 +240,12 @@ export const getObservationsHandler = withErrorHandling(async (args: GetObservat
       return obsMs >= startMs && obsMs <= endMs;
     });
 
-    // Calculate date range in days
     const startDate = args.startDate ? new Date(args.startDate) : new Date(filteredObservations[0]?.timestamp || 0);
     const endDate = args.endDate
       ? new Date(args.endDate)
       : new Date(filteredObservations[filteredObservations.length - 1]?.timestamp || 0);
     const rangeDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    // Aggregate based on date range: >= 90 days = weekly, < 90 days = daily
     const aggregationType = rangeDays >= 90 ? 'weekly' : 'daily';
     const aggregatedObservations =
       aggregationType === 'weekly' ? aggregateToWeekly(filteredObservations) : aggregateToDaily(filteredObservations);

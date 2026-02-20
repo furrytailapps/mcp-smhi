@@ -72,7 +72,6 @@ type GetForecastInput = {
 export const getForecastHandler = withErrorHandling(async (args: GetForecastInput) => {
   let { latitude, longitude } = args;
 
-  // Resolve coordinates from kommun or län if not provided directly
   if (latitude === undefined || longitude === undefined) {
     if (args.kommun) {
       const resolved = resolveKommun(args.kommun);
