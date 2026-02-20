@@ -107,18 +107,6 @@ export function resolveLan(code: string): ResolvedLocation | null {
   };
 }
 
-export function resolveLocation(code: string): ResolvedLocation | null {
-  if (/^\d{4}$/.test(code)) {
-    return resolveKommun(code);
-  }
-
-  if (/^[A-Za-z]{1,2}$/.test(code)) {
-    return resolveLan(code);
-  }
-
-  return null;
-}
-
 export function listKommuner(): Kommun[] {
   return kommuner;
 }
