@@ -135,7 +135,7 @@ export const getObservationsInputSchema = {
   parameter: z
     .string()
     .describe(
-      'Parameter to query. For meteorological: temperature, wind_speed, wind_direction, precipitation, humidity, pressure. ' +
+      'Parameter to query. For meteorological: temperature, wind_speed, wind_direction, precipitation, humidity, pressure, snow_depth. ' +
         'For hydrological: water_level, water_flow.',
     ),
   period: periodSchema
@@ -166,7 +166,7 @@ export const getObservationsTool = {
   name: 'smhi_get_observations',
   description:
     'Get current or historical weather/water observations from SMHI stations. ' +
-    'For meteorological data: temperature, wind, precipitation, humidity, pressure. ' +
+    'For meteorological data: temperature, wind, precipitation, humidity, pressure, snow depth. ' +
     'For hydrological data: water levels and flows (useful for excavation near waterways). ' +
     'Historical queries (corrected-archive with date range) return aggregated data: ' +
     'daily min/max/avg for ranges < 90 days, weekly min/max/avg for ranges >= 90 days. ' +

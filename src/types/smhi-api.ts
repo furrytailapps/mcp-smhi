@@ -442,6 +442,7 @@ export const MET_OBS_PARAMS: Record<number, { name: string; description: string;
   4: { name: 'wind_speed', description: 'Vindhastighet momentanvärde', unit: 'm/s' },
   5: { name: 'precipitation', description: 'Nederbördsmängd', unit: 'mm' },
   6: { name: 'humidity', description: 'Relativ luftfuktighet momentanvärde', unit: '%' },
+  8: { name: 'snow_depth', description: 'Snödjup', unit: 'm' },
   9: { name: 'pressure', description: 'Lufttryck reducerat havsytans nivå', unit: 'hPa' },
   21: { name: 'wind_gust', description: 'Byvind', unit: 'm/s' },
 };
