@@ -3,37 +3,22 @@ import { smhiClient } from '@/clients/smhi-client';
 import { withErrorHandling } from '@/lib/response';
 import { resolveKommun, resolveLan } from '@/lib/location-resolver';
 import { ValidationError } from '@/lib/errors';
+import { latitudeSchema, longitudeSchema, kommunSchema, lanSchema } from '@/types/common-schemas';
 
 export const getForecastInputSchema = {
-  latitude: z
-    .number()
-    .min(55)
-    .max(69)
+  latitude: latitudeSchema
     .optional()
-    .describe(
-      'Latitude in WGS84 (decimal degrees). Sweden range: 55-69. Example: 59.33 for Stockholm. ' +
-        'Optional if kommun or lan is provided.',
-    ),
-  longitude: z
-    .number()
-    .min(11)
-    .max(24)
+    .describe('Latitude in WGS84 (decimal degrees). Example: 59.33 for Stockholm. Optional if kommun or lan is provided.'),
+  longitude: longitudeSchema
     .optional()
-    .describe(
-      'Longitude in WGS84 (decimal degrees). Sweden range: 11-24. Example: 18.07 for Stockholm. ' +
-        'Optional if kommun or lan is provided.',
-    ),
-  kommun: z
-    .string()
-    .regex(/^\d{4}$/)
+    .describe('Longitude in WGS84 (decimal degrees). Example: 18.07 for Stockholm. Optional if kommun or lan is provided.'),
+  kommun: kommunSchema
     .optional()
     .describe(
       'Swedish kommun code (4 digits). Examples: "0180" (Stockholm), "1480" (Göteborg). ' +
         'Use smhi_describe_data with dataType="kommuner" to list valid codes. Alternative to coordinates.',
     ),
-  lan: z
-    .string()
-    .regex(/^[A-Z]{1,2}$/)
+  lan: lanSchema
     .optional()
     .describe(
       'Swedish län code (1-2 letters). Examples: "AB" (Stockholm), "O" (Västra Götaland). ' +

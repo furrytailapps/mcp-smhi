@@ -106,16 +106,28 @@ export interface SmhiObservationResponse {
   parameter: {
     key: string;
     name: string;
-    summary: string;
+    summary?: string;
     unit: string;
   };
-  station: SmhiStation;
+  // Field availability varies by source: metobs/hydroobs include id/latitude/
+  // longitude/height/active inline; ocobs returns only key/name/owner and puts
+  // coordinates in `position[]`.
+  station: {
+    key?: string;
+    id?: number;
+    name: string;
+    height?: number;
+    latitude?: number;
+    longitude?: number;
+    active?: boolean;
+    owner?: string;
+  };
   period: {
     key: string;
     from: number;
     to: number;
-    summary: string;
-    sampling: string;
+    summary?: string;
+    sampling?: string;
   };
   position: SmhiPosition[];
   link: SmhiLink[];
@@ -141,6 +153,22 @@ export interface Observation {
   quality: string;
 }
 
+// A station as returned by any observation source's parameter station-list.
+// Fields beyond the common set are populated only for some sources
+// (height: meteorological; waterCourse/riverBasin: hydrological).
+export interface ObsStationEntry {
+  name: string;
+  id: number;
+  latitude: number;
+  longitude: number;
+  active: boolean;
+  from?: number;
+  to?: number;
+  height?: number;
+  waterCourse?: string;
+  riverBasin?: string;
+}
+
 export interface ObservationResponse {
   station: {
     id: number;
@@ -148,7 +176,7 @@ export interface ObservationResponse {
     latitude: number | null;
     longitude: number | null;
     height: number | null;
-    active: boolean;
+    active: boolean | null;
   };
   parameter: {
     name: string;
@@ -157,36 +185,9 @@ export interface ObservationResponse {
   period: {
     from: string;
     to: string;
-    sampling: string;
+    sampling: string | null;
   };
   observations: Observation[];
-}
-
-// ============================================================================
-// HYDROLOGY OBSERVATIONS
-// ============================================================================
-
-export interface SmhiHydroStationListResponse {
-  key: string;
-  updated: number;
-  title: string;
-  summary: string;
-  link: SmhiLink[];
-  station: SmhiHydroStation[];
-}
-
-export interface SmhiHydroStation {
-  name: string;
-  id: number;
-  latitude: number;
-  longitude: number;
-  active: boolean;
-  from: number;
-  to: number;
-  key?: string;
-  waterCourse?: string;
-  riverBasin?: string;
-  stationType?: string;
 }
 
 // ============================================================================
@@ -415,6 +416,7 @@ export const SMHI_API_BASES = {
   forecast: 'https://opendata-download-metfcst.smhi.se',
   metobs: 'https://opendata-download-metobs.smhi.se',
   hydroobs: 'https://opendata-download-hydroobs.smhi.se',
+  ocobs: 'https://opendata-download-ocobs.smhi.se',
   warnings: 'https://opendata-download-warnings.smhi.se',
   radar: 'https://opendata-download-radar.smhi.se',
   lightning: 'https://opendata-download-lightning.smhi.se',
@@ -450,4 +452,20 @@ export const MET_OBS_PARAMS: Record<number, { name: string; description: string;
 export const HYDRO_OBS_PARAMS: Record<number, { name: string; description: string; unit: string }> = {
   1: { name: 'water_flow', description: 'Vattenföring (Dygn)', unit: 'm³/s' },
   3: { name: 'water_level', description: 'Vattenstånd', unit: 'cm' },
+};
+
+// Oceanographic observation parameters (ocobs). Units verified against live
+// corrected-archive CSV headers. Wave parameters are sparse (3-7 active buoys,
+// mostly offshore west coast + a few Baltic).
+export const OCEAN_OBS_PARAMS: Record<number, { name: string; description: string; unit: string }> = {
+  5: { name: 'sea_temperature', description: 'Havstemperatur', unit: '°C' },
+  3: { name: 'current_speed', description: 'Strömhastighet', unit: 'cm/s' },
+  2: { name: 'current_direction', description: 'Strömriktning', unit: '°' },
+  1: { name: 'wave_height_significant', description: 'Våghöjd, signifikant 30 min', unit: 'm' },
+  11: { name: 'wave_height_max', description: 'Våghöjd, maximal 30 min', unit: 'm' },
+  6: { name: 'sea_level', description: 'Havsvattenstånd', unit: 'cm' },
+  9: { name: 'wave_period_peak', description: 'Vågperiod, peakvärde 30 min', unit: 's' },
+  10: { name: 'wave_period_mean', description: 'Vågperiod, medelvärde 30 min', unit: 's' },
+  7: { name: 'wave_direction_mean', description: 'Vågriktning, medelvärde 30 min', unit: '°' },
+  8: { name: 'wave_direction_peak', description: 'Vågriktning vid Tp (energimax 30 min)', unit: '°' },
 };

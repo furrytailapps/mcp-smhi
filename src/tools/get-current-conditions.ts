@@ -3,6 +3,7 @@ import { smhiClient } from '@/clients/smhi-client';
 import { withErrorHandling } from '@/lib/response';
 import { ValidationError } from '@/lib/errors';
 import { resolveKommun, resolveLan } from '@/lib/location-resolver';
+import { latitudeSchema, longitudeSchema, kommunSchema, lanSchema } from '@/types/common-schemas';
 
 const conditionTypeSchema = z
   .enum(['warnings', 'radar', 'lightning'])
@@ -30,36 +31,24 @@ export const getCurrentConditionsInputSchema = {
     .string()
     .optional()
     .describe("For lightning: date in YYYY-MM-DD format or 'latest'. Lightning data typically 1-day delayed."),
-  latitude: z
-    .number()
-    .min(55)
-    .max(69)
+  latitude: latitudeSchema
     .optional()
     .describe(
-      'For lightning: filter strikes near this latitude (WGS84). Example: 59.33. ' +
-        'Alternative: use kommun or lan parameter.',
+      'For lightning: filter strikes near this latitude (WGS84). Example: 59.33. Alternative: use kommun or lan parameter.',
     ),
-  longitude: z
-    .number()
-    .min(11)
-    .max(24)
+  longitude: longitudeSchema
     .optional()
     .describe(
-      'For lightning: filter strikes near this longitude (WGS84). Example: 18.07. ' +
-        'Alternative: use kommun or lan parameter.',
+      'For lightning: filter strikes near this longitude (WGS84). Example: 18.07. Alternative: use kommun or lan parameter.',
     ),
-  kommun: z
-    .string()
-    .regex(/^\d{4}$/)
+  kommun: kommunSchema
     .optional()
     .describe(
       'For lightning: filter strikes near this kommun code (4 digits). ' +
         'Examples: "0180" (Stockholm), "1480" (Göteborg). ' +
         'Use smhi_describe_data with dataType="kommuner" to list valid codes.',
     ),
-  lan: z
-    .string()
-    .regex(/^[A-Z]{1,2}$/)
+  lan: lanSchema
     .optional()
     .describe(
       'For lightning: filter strikes near this län code (1-2 letters). ' +

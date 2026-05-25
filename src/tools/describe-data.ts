@@ -1,5 +1,6 @@
 import { smhiClient } from '@/clients/smhi-client';
 import { withErrorHandling } from '@/lib/response';
+import { ValidationError } from '@/lib/errors';
 import { listKommuner, listLan, getKommunerInLan } from '@/lib/location-resolver';
 import { describeDataTypeSchema } from '@/types/common-schemas';
 import { z } from 'zod';
@@ -20,23 +21,14 @@ export const describeDataTool = {
     'Discover available SMHI data sources, parameters, stations, and Swedish administrative areas. ' +
     'Use this to find station IDs, understand available parameters, list warning districts, ' +
     'or look up kommun/län codes for location-based queries. ' +
-    'Options: forecast_parameters, met_stations, hydro_stations, met_parameters, hydro_parameters, ' +
-    'warning_districts, radar_products, kommuner, lan. ' +
+    'Options: forecast_parameters, met_stations, hydro_stations, ocean_stations, met_parameters, hydro_parameters, ' +
+    'ocean_parameters, warning_districts, radar_products, kommuner, lan. ' +
     'Example: dataType=kommuner, lanFilter="AB" to list kommuner in Stockholms län.',
   inputSchema: describeDataInputSchema,
 };
 
 type DescribeDataInput = {
-  dataType:
-    | 'forecast_parameters'
-    | 'met_stations'
-    | 'hydro_stations'
-    | 'met_parameters'
-    | 'hydro_parameters'
-    | 'warning_districts'
-    | 'radar_products'
-    | 'kommuner'
-    | 'lan';
+  dataType: z.infer<typeof describeDataTypeSchema>;
   lanFilter?: string;
 };
 
@@ -49,7 +41,7 @@ export const describeDataHandler = withErrorHandling(async (args: DescribeDataIn
       };
 
     case 'met_stations': {
-      const stations = await smhiClient.listMetStations();
+      const stations = await smhiClient.listStations('meteorological');
       return {
         description: 'Active meteorological observation stations',
         count: stations.length,
@@ -64,7 +56,7 @@ export const describeDataHandler = withErrorHandling(async (args: DescribeDataIn
     }
 
     case 'hydro_stations': {
-      const stations = await smhiClient.listHydroStations();
+      const stations = await smhiClient.listStations('hydrological');
       return {
         description: 'Active hydrological observation stations',
         count: stations.length,
@@ -79,16 +71,41 @@ export const describeDataHandler = withErrorHandling(async (args: DescribeDataIn
       };
     }
 
+    case 'ocean_stations': {
+      const stations = await smhiClient.listStations('oceanographic');
+      return {
+        description:
+          'Active oceanographic stations reporting sea temperature (the broadest ocean network). ' +
+          'Wave and current parameters are measured at a sparse subset of offshore buoys — query ' +
+          'smhi_get_observations with the specific parameter to find the nearest station for that measurement.',
+        count: stations.length,
+        stations: stations.map((s) => ({
+          id: s.id,
+          name: s.name,
+          latitude: s.latitude,
+          longitude: s.longitude,
+        })),
+      };
+    }
+
     case 'met_parameters':
       return {
         description: 'Meteorological observation parameters',
-        parameters: await smhiClient.getMetParameters(),
+        parameters: await smhiClient.getParameters('meteorological'),
       };
 
     case 'hydro_parameters':
       return {
         description: 'Hydrological observation parameters',
-        parameters: await smhiClient.getHydroParameters(),
+        parameters: await smhiClient.getParameters('hydrological'),
+      };
+
+    case 'ocean_parameters':
+      return {
+        description:
+          'Oceanographic observation parameters (SMHI coastal stations and offshore buoys). ' +
+          'Wave parameters (height, period, direction) have sparse coverage — 3-7 active buoys, mostly offshore west coast.',
+        parameters: await smhiClient.getParameters('oceanographic'),
       };
 
     case 'warning_districts': {
@@ -138,6 +155,11 @@ export const describeDataHandler = withErrorHandling(async (args: DescribeDataIn
           longitude: l.longitude,
         })),
       };
+    }
+
+    default: {
+      const _exhaustive: never = args.dataType;
+      throw new ValidationError(`Unknown dataType: ${String(_exhaustive)}`);
     }
   }
 });

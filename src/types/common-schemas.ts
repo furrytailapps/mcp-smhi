@@ -2,21 +2,26 @@ import { z } from 'zod';
 
 // Raw shapes (not wrapped in z.object()) for use with mcp-handler
 
+// Bounds cover Swedish land plus surrounding waters so offshore marine stations
+// are accepted — the westernmost wave buoy (Väderöarna) sits at 10.93°E, below
+// the previous 11°E floor. Margins are deliberate maritime sanity guards.
 export const latitudeSchema = z
   .number()
-  .min(55)
-  .max(69)
-  .describe('Latitude in WGS84 (decimal degrees). Sweden range: 55-69. Example: 59.33 for Stockholm');
+  .min(54.5)
+  .max(69.5)
+  .describe('Latitude in WGS84 (decimal degrees). Sweden + surrounding waters: 54.5-69.5. Example: 59.33 for Stockholm');
 
 export const longitudeSchema = z
   .number()
-  .min(11)
-  .max(24)
-  .describe('Longitude in WGS84 (decimal degrees). Sweden range: 11-24. Example: 18.07 for Stockholm');
+  .min(10)
+  .max(24.5)
+  .describe('Longitude in WGS84 (decimal degrees). Sweden + surrounding waters: 10-24.5. Example: 18.07 for Stockholm');
 
 export const dataTypeSchema = z
-  .enum(['meteorological', 'hydrological'])
-  .describe('Type of observation data: meteorological (weather) or hydrological (water levels/flows)');
+  .enum(['meteorological', 'hydrological', 'oceanographic'])
+  .describe(
+    'Type of observation data: meteorological (weather), hydrological (water levels/flows), or oceanographic (sea temperature, currents, waves, sea level)',
+  );
 
 export const periodSchema = z
   .enum(['latest-hour', 'latest-day', 'latest-months', 'corrected-archive'])
@@ -29,8 +34,10 @@ export const describeDataTypeSchema = z
     'forecast_parameters',
     'met_stations',
     'hydro_stations',
+    'ocean_stations',
     'met_parameters',
     'hydro_parameters',
+    'ocean_parameters',
     'warning_districts',
     'radar_products',
     'kommuner',
@@ -45,5 +52,5 @@ export const kommunSchema = z
 
 export const lanSchema = z
   .string()
-  .regex(/^[A-Za-z]{1,2}$/)
-  .describe('Swedish län (county) code. 1-2 letters, e.g., "AB" for Stockholms län, "O" for Västra Götalands län');
+  .regex(/^[A-Z]{1,2}$/)
+  .describe('Swedish län (county) code. 1-2 uppercase letters, e.g., "AB" for Stockholms län, "O" for Västra Götalands län');
