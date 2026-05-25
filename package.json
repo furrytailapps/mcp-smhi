@@ -32,7 +32,8 @@
     "prettier:fix": "prettier --write .",
     "predeploy": "./scripts/predeploy.sh",
     "test": "node tests/basic.cjs",
-    "test:all": "node tests/comprehensive.cjs"
+    "test:all": "node tests/comprehensive.cjs",
+    "test:unit": "node --import tsx tests/csv-archive.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.1",
@@ -49,6 +50,7 @@
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.2.0",
     "prettier": "^3.7.4",
+    "tsx": "^4.22.3",
     "typescript": "^5.0.0"
   }
 }

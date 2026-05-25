@@ -35,3 +35,10 @@ export class ValidationError extends McpToolError {
     this.name = 'ValidationError';
   }
 }
+
+export class ParseError extends McpToolError {
+  constructor(message: string, details?: Record<string, unknown>) {
+    super(message, 'PARSE_ERROR', details);
+    this.name = 'ParseError';
+  }
+}
