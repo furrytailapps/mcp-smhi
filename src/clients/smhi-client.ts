@@ -63,7 +63,7 @@ const OBS_SOURCES = {
 
 function transformForecastTimeSeries(timeSeries: SmhiForecastResponse['timeSeries']): ForecastPoint[] {
   return timeSeries.map((ts) => {
-    const point: Record<string, string | number | undefined> = { validTime: ts.time };
+    const point: ForecastPoint = { validTime: ts.time };
 
     if (ts.data) {
       for (const [apiName, value] of Object.entries(ts.data)) {
@@ -74,7 +74,7 @@ function transformForecastTimeSeries(timeSeries: SmhiForecastResponse['timeSerie
       }
     }
 
-    return point as unknown as ForecastPoint;
+    return point;
   });
 }
 
@@ -190,13 +190,13 @@ export const smhiClient = {
     if (parameters && parameters.length > 0) {
       const paramSet = new Set(parameters);
       timeSeries = timeSeries.map((point) => {
-        const filtered: Record<string, string | number | undefined> = { validTime: point.validTime };
+        const filtered: ForecastPoint = { validTime: point.validTime };
         for (const [key, value] of Object.entries(point)) {
           if (key === 'validTime' || paramSet.has(key)) {
             filtered[key] = value;
           }
         }
-        return filtered as unknown as ForecastPoint;
+        return filtered;
       });
     }
 
