@@ -1,15 +1,16 @@
 import { createHttpClient } from '@/lib/http-client';
-import { NotFoundError, UpstreamApiError } from '@/lib/errors';
+import { NotFoundError, UpstreamApiError, ValidationError } from '@/lib/errors';
 import { parseCorrectedArchiveCsv } from '@/lib/csv-archive';
 import {
   SMHI_API_BASES,
   FORECAST_PARAMS,
   MET_OBS_PARAMS,
   HYDRO_OBS_PARAMS,
+  OCEAN_OBS_PARAMS,
   type SmhiForecastResponse,
   type SmhiStationListResponse,
   type SmhiObservationResponse,
-  type SmhiHydroStationListResponse,
+  type ObsStationEntry,
   type SmhiWarningsResponse,
   type SmhiRadarProductsResponse,
   type SmhiRadarAreaResponse,
@@ -31,9 +32,34 @@ import {
 const forecastClient = createHttpClient({ baseUrl: SMHI_API_BASES.forecast, timeout: 30000 });
 const metobsClient = createHttpClient({ baseUrl: SMHI_API_BASES.metobs, timeout: 30000 });
 const hydroobsClient = createHttpClient({ baseUrl: SMHI_API_BASES.hydroobs, timeout: 30000 });
+const ocobsClient = createHttpClient({ baseUrl: SMHI_API_BASES.ocobs, timeout: 30000 });
 const warningsClient = createHttpClient({ baseUrl: SMHI_API_BASES.warnings, timeout: 30000 });
 const radarClient = createHttpClient({ baseUrl: SMHI_API_BASES.radar, timeout: 30000 });
 const lightningClient = createHttpClient({ baseUrl: SMHI_API_BASES.lightning, timeout: 30000 });
+
+export type ObsDataType = 'meteorological' | 'hydrological' | 'oceanographic';
+
+interface ObsSource {
+  client: ReturnType<typeof createHttpClient>;
+  params: Record<number, { name: string; description: string; unit: string }>;
+  // Parameter id used to list this source's stations (a broad-coverage one).
+  stationListParam: number;
+  // Periods this source serves; null means all of periodSchema. ocobs has no latest-months.
+  periods: readonly string[] | null;
+}
+
+// Single registry for the three observation sources, replacing per-function
+// dataType ternaries. Exhaustiveness is compiler-enforced via `satisfies`.
+const OBS_SOURCES = {
+  meteorological: { client: metobsClient, params: MET_OBS_PARAMS, stationListParam: 1, periods: null },
+  hydrological: { client: hydroobsClient, params: HYDRO_OBS_PARAMS, stationListParam: 1, periods: null },
+  oceanographic: {
+    client: ocobsClient,
+    params: OCEAN_OBS_PARAMS,
+    stationListParam: 5, // sea_temperature — broadest ocean network (70 active)
+    periods: ['latest-hour', 'latest-day', 'corrected-archive'],
+  },
+} satisfies Record<ObsDataType, ObsSource>;
 
 function transformForecastTimeSeries(timeSeries: SmhiForecastResponse['timeSeries']): ForecastPoint[] {
   return timeSeries.map((ts) => {
@@ -196,18 +222,25 @@ export const smhiClient = {
   // ============================================================================
 
   async getObservation(
-    dataType: 'meteorological' | 'hydrological',
+    dataType: ObsDataType,
     stationId: number,
     parameter: string,
     period: string,
   ): Promise<ObservationResponse | null> {
-    const paramMap = dataType === 'meteorological' ? MET_OBS_PARAMS : HYDRO_OBS_PARAMS;
-    const client = dataType === 'meteorological' ? metobsClient : hydroobsClient;
+    const source = OBS_SOURCES[dataType];
 
-    const paramEntry = Object.entries(paramMap).find(([, info]) => info.name === parameter);
+    if (source.periods && !source.periods.includes(period)) {
+      throw new ValidationError(
+        `Period "${period}" is not available for ${dataType} data. Supported periods: ${source.periods.join(', ')}.`,
+        'period',
+      );
+    }
+
+    const paramEntry = Object.entries(source.params).find(([, info]) => info.name === parameter);
     if (!paramEntry) return null;
 
     const paramId = paramEntry[0];
+    const client = source.client;
 
     try {
       if (period === 'corrected-archive') {
@@ -244,14 +277,17 @@ export const smhiClient = {
         `/api/version/1.0/parameter/${paramId}/station/${stationId}/period/${period}/data.json`,
       );
 
+      // Field availability varies by source: metobs/hydroobs carry coords inline
+      // on the station; ocobs puts them in position[] and omits id/active/sampling.
+      const position = response.position?.[0];
       return {
         station: {
-          id: response.station.id,
+          id: response.station.id ?? stationId,
           name: response.station.name,
-          latitude: response.station.latitude,
-          longitude: response.station.longitude,
-          height: response.station.height || 0,
-          active: response.station.active,
+          latitude: response.station.latitude ?? position?.latitude ?? null,
+          longitude: response.station.longitude ?? position?.longitude ?? null,
+          height: response.station.height ?? null,
+          active: response.station.active ?? null,
         },
         parameter: {
           name: response.parameter.name,
@@ -260,7 +296,7 @@ export const smhiClient = {
         period: {
           from: new Date(response.period.from).toISOString(),
           to: new Date(response.period.to).toISOString(),
-          sampling: response.period.sampling,
+          sampling: response.period.sampling ?? null,
         },
         observations: transformObservations(response.value),
       };
@@ -273,46 +309,34 @@ export const smhiClient = {
   },
 
   async findNearestObservationStation(
-    dataType: 'meteorological' | 'hydrological',
+    dataType: ObsDataType,
     latitude: number,
     longitude: number,
     parameter: string,
   ): Promise<{ id: number; name: string; latitude: number; longitude: number } | null> {
-    const paramMap = dataType === 'meteorological' ? MET_OBS_PARAMS : HYDRO_OBS_PARAMS;
-    const client = dataType === 'meteorological' ? metobsClient : hydroobsClient;
+    const source = OBS_SOURCES[dataType];
 
-    const paramEntry = Object.entries(paramMap).find(([, info]) => info.name === parameter);
+    const paramEntry = Object.entries(source.params).find(([, info]) => info.name === parameter);
     if (!paramEntry) return null;
 
     const paramId = paramEntry[0];
 
-    const response = await client.request<SmhiStationListResponse>(`/api/version/1.0/parameter/${paramId}.json`);
+    const response = await source.client.request<SmhiStationListResponse>(`/api/version/1.0/parameter/${paramId}.json`);
     const activeStations = response.station.filter((s) => s.active);
 
     return findNearestStation(activeStations, latitude, longitude);
   },
 
-  async listMetStations(): Promise<SmhiStationListResponse['station']> {
-    const response = await metobsClient.request<SmhiStationListResponse>('/api/version/1.0/parameter/1.json');
+  async listStations(dataType: ObsDataType): Promise<ObsStationEntry[]> {
+    const source = OBS_SOURCES[dataType];
+    const response = await source.client.request<{ station: ObsStationEntry[] }>(
+      `/api/version/1.0/parameter/${source.stationListParam}.json`,
+    );
     return response.station.filter((s) => s.active);
   },
 
-  async listHydroStations(): Promise<SmhiHydroStationListResponse['station']> {
-    const response = await hydroobsClient.request<SmhiHydroStationListResponse>('/api/version/1.0/parameter/1.json');
-    return response.station.filter((s) => s.active);
-  },
-
-  async getMetParameters(): Promise<ObservationParameter[]> {
-    return Object.entries(MET_OBS_PARAMS).map(([id, info]) => ({
-      id: parseInt(id),
-      name: info.name,
-      description: info.description,
-      unit: info.unit,
-    }));
-  },
-
-  async getHydroParameters(): Promise<ObservationParameter[]> {
-    return Object.entries(HYDRO_OBS_PARAMS).map(([id, info]) => ({
+  async getParameters(dataType: ObsDataType): Promise<ObservationParameter[]> {
+    return Object.entries(OBS_SOURCES[dataType].params).map(([id, info]) => ({
       id: parseInt(id),
       name: info.name,
       description: info.description,

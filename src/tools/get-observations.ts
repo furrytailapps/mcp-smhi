@@ -3,7 +3,7 @@ import { smhiClient } from '@/clients/smhi-client';
 import { withErrorHandling } from '@/lib/response';
 import { ValidationError, NotFoundError } from '@/lib/errors';
 import { resolveKommun, resolveLan } from '@/lib/location-resolver';
-import { dataTypeSchema, periodSchema } from '@/types/common-schemas';
+import { dataTypeSchema, periodSchema, latitudeSchema, longitudeSchema, kommunSchema, lanSchema } from '@/types/common-schemas';
 
 interface AggregatedObservation {
   period: string; // Date for daily (YYYY-MM-DD), or week start for weekly (YYYY-MM-DD)
@@ -98,34 +98,24 @@ function aggregateToWeekly(
 export const getObservationsInputSchema = {
   dataType: dataTypeSchema,
   stationId: z.number().optional().describe('Station ID. If not provided, finds nearest station to the given location.'),
-  latitude: z
-    .number()
-    .min(55)
-    .max(69)
+  latitude: latitudeSchema
     .optional()
     .describe(
-      'Latitude (WGS84) for finding nearest station. Example: 59.33. ' + 'Optional if stationId, kommun, or lan is provided.',
+      'Latitude (WGS84) for finding nearest station. Example: 59.33. Optional if stationId, kommun, or lan is provided.',
     ),
-  longitude: z
-    .number()
-    .min(11)
-    .max(24)
+  longitude: longitudeSchema
     .optional()
     .describe(
-      'Longitude (WGS84) for finding nearest station. Example: 18.07. ' + 'Optional if stationId, kommun, or lan is provided.',
+      'Longitude (WGS84) for finding nearest station. Example: 18.07. Optional if stationId, kommun, or lan is provided.',
     ),
-  kommun: z
-    .string()
-    .regex(/^\d{4}$/)
+  kommun: kommunSchema
     .optional()
     .describe(
       'Swedish kommun code (4 digits) for finding nearest station. ' +
         'Examples: "0180" (Stockholm), "1480" (Göteborg). ' +
         'Use smhi_describe_data with dataType="kommuner" to list valid codes.',
     ),
-  lan: z
-    .string()
-    .regex(/^[A-Z]{1,2}$/)
+  lan: lanSchema
     .optional()
     .describe(
       'Swedish län code (1-2 letters) for finding nearest station. ' +
@@ -135,14 +125,18 @@ export const getObservationsInputSchema = {
   parameter: z
     .string()
     .describe(
-      'Parameter to query. For meteorological: temperature, wind_speed, wind_direction, precipitation, humidity, pressure, snow_depth. ' +
-        'For hydrological: water_level, water_flow.',
+      'Parameter to query. Meteorological: temperature, wind_speed, wind_direction, wind_gust, precipitation, humidity, pressure, snow_depth. ' +
+        'Hydrological: water_level, water_flow. ' +
+        'Oceanographic: sea_temperature, current_speed, current_direction, wave_height_significant, wave_height_max, sea_level, ' +
+        'wave_period_peak, wave_period_mean, wave_direction_mean, wave_direction_peak. ' +
+        'Use smhi_describe_data (met_parameters / hydro_parameters / ocean_parameters) to list all.',
     ),
   period: periodSchema
     .default('latest-hour')
     .describe(
       'Time period: latest-hour (last hour), latest-day (last 24h), latest-months (last 3-4 months), ' +
-        'corrected-archive (full historical data, some stations back to 1960s).',
+        'corrected-archive (full historical data, some stations back to 1960s). ' +
+        'Oceanographic data supports latest-hour, latest-day, and corrected-archive only (no latest-months).',
     ),
   startDate: z
     .string()
@@ -165,9 +159,11 @@ export const getObservationsInputSchema = {
 export const getObservationsTool = {
   name: 'smhi_get_observations',
   description:
-    'Get current or historical weather/water observations from SMHI stations. ' +
+    'Get current or historical weather/water/sea observations from SMHI stations. ' +
     'For meteorological data: temperature, wind, precipitation, humidity, pressure, snow depth. ' +
     'For hydrological data: water levels and flows (useful for excavation near waterways). ' +
+    'For oceanographic data: sea temperature, currents, wave height/period/direction, sea level ' +
+    '(coastal/marine construction; wave data is sparse — offshore buoys only). ' +
     'Historical queries (corrected-archive with date range) return aggregated data: ' +
     'daily min/max/avg for ranges < 90 days, weekly min/max/avg for ranges >= 90 days. ' +
     'Returns station location (WGS84 latitude/longitude) alongside observation data. ' +
@@ -177,7 +173,7 @@ export const getObservationsTool = {
 };
 
 type GetObservationsInput = {
-  dataType: 'meteorological' | 'hydrological';
+  dataType: 'meteorological' | 'hydrological' | 'oceanographic';
   stationId?: number;
   latitude?: number;
   longitude?: number;
