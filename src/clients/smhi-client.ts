@@ -1,5 +1,6 @@
 import { createHttpClient } from '@/lib/http-client';
 import { NotFoundError, UpstreamApiError } from '@/lib/errors';
+import { parseCorrectedArchiveCsv } from '@/lib/csv-archive';
 import {
   SMHI_API_BASES,
   FORECAST_PARAMS,
@@ -57,168 +58,6 @@ function transformObservations(values: SmhiObservationResponse['value']): Observ
     value: parseFloat(v.value),
     quality: v.quality,
   }));
-}
-
-// corrected-archive CSV formats:
-// - Meteorological hourly: "Datum;Tid (UTC);Value;Quality"
-// - Precipitation daily: "Från Datum Tid;Till Datum Tid;Representativt dygn;Value;Quality"
-// - Hydrological: "Datum (svensk sommartid);Value;Quality"
-function parseCorrectedArchiveCsv(csv: string): {
-  observations: Observation[];
-  station: { name: string; id: number };
-  parameter: { name: string; unit: string };
-  period: { from: string; to: string };
-} {
-  const lines = csv.split('\n');
-  const observations: Observation[] = [];
-
-  // Parse header info
-  let stationName = '';
-  let stationId = 0;
-  let parameterName = '';
-  let unit = '';
-  let periodFrom = '';
-  let periodTo = '';
-  let dataFormat: 'hourly' | 'daily-precip' | 'hydro' | null = null;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-
-    // Station info line: "Uppsala Aut;97510;SMHIs stationsnät;2.0" or "MÄLAREN;20040;SMHIs stationsnät;..."
-    // Must check that line starts with station name (not a date) to avoid matching data row comments
-    if (
-      (trimmed.includes('SMHIs stationsnät') || trimmed.includes('Övriga stationer')) &&
-      !trimmed.startsWith('Datum') &&
-      !trimmed.startsWith('Från') &&
-      !/^\d{4}-\d{2}-\d{2}/.test(trimmed)
-    ) {
-      const parts = trimmed.split(';');
-      if (parts.length >= 2) {
-        stationName = parts[0];
-        // StationsId or Stationsnummer in column 2
-        stationId = parseInt(parts[1]) || 0;
-      }
-      continue;
-    }
-
-    // Parameter line - various formats:
-    // "Lufttemperatur;momentanvärde, 1 gång/tim;celsius"
-    // "Nederbördsmängd;summa 1 dygn, 1 gång/dygn, kl 06;millimeter"
-    // "Vindhastighet;medelvärde 10 min, 1 gång/tim;meter per sekund"
-    // "Vattenföring (Dygn);m³/s" (only 2 fields for hydro)
-    // Check starts with "Parameternamn" header OR is a data line with unit in position 2/3
-    if (trimmed.startsWith('Parameternamn;')) {
-      continue;
-    }
-    const parts = trimmed.split(';');
-    // Parameter line has 2-3 fields, doesn't start with date/time patterns, and isn't a header
-    if (
-      parts.length >= 2 &&
-      parts.length <= 4 &&
-      !trimmed.startsWith('Tidsperiod') &&
-      !trimmed.startsWith('Datum') &&
-      !trimmed.startsWith('Från') &&
-      !trimmed.startsWith('Stationsnamn') &&
-      !/^\d{4}-\d{2}-\d{2}/.test(trimmed)
-    ) {
-      const unitField = parts[parts.length - 1]?.toLowerCase() || '';
-      const unitPatterns = [
-        'celsius',
-        'm/s',
-        'procent',
-        'hpa',
-        'grader',
-        'millimeter',
-        'm³/s',
-        'meter per sekund',
-        'sekund',
-        'cm',
-      ];
-      if (unitPatterns.some((u) => unitField.includes(u))) {
-        parameterName = parts[0];
-        unit = parts[parts.length >= 3 ? 2 : 1] || '';
-        continue;
-      }
-    }
-
-    // Period info from comment lines: "Tidsperiod (fr.o.m.) = 1985-06-01 00:00:00 (UTC)"
-    const periodMatch = trimmed.match(/Tidsperiod \(fr\.o\.m\.\) = (\d{4}-\d{2}-\d{2})/);
-    if (periodMatch && !periodFrom) {
-      periodFrom = periodMatch[1] + ' 00:00:00';
-    }
-    const periodToMatch = trimmed.match(/Tidsperiod \(t\.o\.m\.\) = (\d{4}-\d{2}-\d{2})/);
-    if (periodToMatch) {
-      periodTo = periodToMatch[1] + ' 23:59:59';
-    }
-
-    if (trimmed.startsWith('Datum;Tid (UTC)')) {
-      dataFormat = 'hourly';
-      continue;
-    }
-    if (trimmed.startsWith('Från Datum Tid')) {
-      dataFormat = 'daily-precip';
-      continue;
-    }
-    if (trimmed.startsWith('Datum (svensk sommartid)')) {
-      dataFormat = 'hydro';
-      continue;
-    }
-
-    if (dataFormat && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
-      const parts = trimmed.split(';');
-
-      if (dataFormat === 'hourly' && parts.length >= 4) {
-        // Format: "1985-06-01;00:00:00;6.5;G;;"
-        const date = parts[0];
-        const time = parts[1];
-        const value = parseFloat(parts[2]);
-        const quality = parts[3];
-
-        if (!isNaN(value)) {
-          observations.push({
-            timestamp: new Date(`${date}T${time}Z`).toISOString(),
-            value,
-            quality,
-          });
-        }
-      } else if (dataFormat === 'daily-precip' && parts.length >= 5) {
-        // Format: "1945-01-01 07:00:01;1945-01-02 07:00:00;1945-01-01;2.4;G;;"
-        // Use "Representativt dygn" (column 3) as the date
-        const date = parts[2];
-        const value = parseFloat(parts[3]);
-        const quality = parts[4];
-
-        if (!isNaN(value) && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
-          observations.push({
-            timestamp: new Date(`${date}T12:00:00Z`).toISOString(), // Use noon for daily values
-            value,
-            quality,
-          });
-        }
-      } else if (dataFormat === 'hydro' && parts.length >= 3) {
-        // Format: "1901-01-01;248;G;;;"
-        const date = parts[0];
-        const value = parseFloat(parts[1]);
-        const quality = parts[2];
-
-        if (!isNaN(value)) {
-          observations.push({
-            timestamp: new Date(`${date}T12:00:00Z`).toISOString(), // Use noon for daily values
-            value,
-            quality,
-          });
-        }
-      }
-    }
-  }
-
-  return {
-    observations,
-    station: { name: stationName, id: stationId },
-    parameter: { name: parameterName, unit },
-    period: { from: periodFrom, to: periodTo },
-  };
 }
 
 function transformWarnings(events: SmhiWarningsResponse): Warning[] {
@@ -383,9 +222,9 @@ export const smhiClient = {
           station: {
             id: parsed.station.id || stationId,
             name: parsed.station.name,
-            latitude: 0, // Not available in CSV format
-            longitude: 0, // Not available in CSV format
-            height: 0,
+            latitude: parsed.station.latitude,
+            longitude: parsed.station.longitude,
+            height: null,
             active: true,
           },
           parameter: {

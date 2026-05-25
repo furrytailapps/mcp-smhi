@@ -145,9 +145,9 @@ export interface ObservationResponse {
   station: {
     id: number;
     name: string;
-    latitude: number;
-    longitude: number;
-    height: number;
+    latitude: number | null;
+    longitude: number | null;
+    height: number | null;
     active: boolean;
   };
   parameter: {
