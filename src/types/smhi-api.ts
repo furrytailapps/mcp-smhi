@@ -56,6 +56,8 @@ export interface ForecastPoint {
   pressure?: number;
   thunderProbability?: number;
   symbolCode?: string;
+  // Parameter names are mapped dynamically from FORECAST_PARAMS.
+  [key: string]: string | number | undefined;
 }
 
 export interface ForecastResponse {
@@ -65,6 +67,61 @@ export interface ForecastResponse {
   longitude: number;
   timeSeries: ForecastPoint[];
 }
+
+// ============================================================================
+// MARINE FORECAST (MET Norway Oceanforecast 2.0)
+// ============================================================================
+
+// Endpoint: GET https://api.met.no/weatherapi/oceanforecast/2.0/complete?lat={lat}&lon={lon}
+export interface MetNoOceanforecastResponse {
+  properties: {
+    meta: { units: Record<string, string> };
+    timeseries: Array<{
+      time: string;
+      data: { instant: { details: Record<string, number> } };
+    }>;
+  };
+}
+
+export interface MarineForecastPoint {
+  validTime: string;
+  wave_height?: number;
+  sea_temperature?: number;
+  wave_direction?: number;
+  // Parameter names are mapped dynamically from OCEAN_FCST_PARAMS.
+  [key: string]: string | number | undefined;
+}
+
+export interface MarineForecastResult {
+  referenceTime: string;
+  timeSeries: MarineForecastPoint[];
+}
+
+// Combined forecast response. Atmospheric (SMHI) and marine (MET Norway) come
+// from different models with different cadences, so they stay as separate series
+// rather than being interleaved. Each is present only if requested and fetched.
+export interface ForecastEnvelope {
+  latitude: number;
+  longitude: number;
+  sources: { atmospheric?: string; marine?: string };
+  approvedTime?: string;
+  referenceTime?: string;
+  timeSeries?: ForecastPoint[];
+  marineReferenceTime?: string;
+  marineTimeSeries?: MarineForecastPoint[];
+  unrecognizedParameters?: string[];
+  errors?: { atmospheric?: string; marine?: string };
+}
+
+// MET Norway oceanforecast field -> our output name + unit. Currents
+// (sea_water_speed/to_direction) are intentionally excluded — forecast quality
+// unverified; sea currents are served as observations only. Wave period is not
+// offered by this product.
+export const OCEAN_FCST_PARAMS: Record<string, { name: string; unit: string }> = {
+  sea_surface_wave_height: { name: 'wave_height', unit: 'm' },
+  sea_water_temperature: { name: 'sea_temperature', unit: '°C' },
+  sea_surface_wave_from_direction: { name: 'wave_direction', unit: '°' },
+};
 
 // ============================================================================
 // OBSERVATIONS (Meteorological & Hydrological)
